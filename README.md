@@ -1,7 +1,3 @@
-Here is a sample `README.md` file for your **Code Translator Streamlit App** using Groq's LLaMA-3 API:
-
----
-
 # 🧠 Code Translator with Streamlit & Groq API
 
 A lightweight, AI-powered web app that translates code or shell commands between different programming languages using the LLaMA-3 70B model via the Groq API.
