@@ -3,8 +3,7 @@ import os
 import groq
 
 # AI setup - Use environment variables or Streamlit secrets for API keys
-groq_api_key = "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"
-client = groq.Client(api_key=groq_api_key)
+client = groq.Client(api_key=st.secrets["GROQ_API_KEY"])
 
 # Chatbot setup
 def ai_chatbot(a, b, user_input):
@@ -12,7 +11,7 @@ def ai_chatbot(a, b, user_input):
         messages=[
             {
                 "role": "user",
-                "content": f"Convert the entered command inputted in {a} language to {b} language. The input is: {user_input} in just one line",
+                "content": f"Convert the entered command inputted in {a} language to {b} language. The input is: {user_input} ",
             }
         ],
         model="llama-3.3-70b-versatile",  
