@@ -1,22 +1,86 @@
 import streamlit as st
 import os
 import groq
-from functools import lru_cache
+import time
+import sqlalchemy as db
 
 # -------------------------
-#  Setup & Configuration
+#  Setup & Config
 # -------------------------
 
-# Safe API key retrieval (support both secrets and environment variables)
+# Safe API key retrieval
 GROQ_API_KEY = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
-
 if not GROQ_API_KEY:
-    st.error("⚠️ API key not found. Please set it in Streamlit secrets or environment variables.")
+    st.error("⚠️ API key not found. Set it in Streamlit secrets or environment variables.")
     st.stop()
 
 client = groq.Client(api_key=GROQ_API_KEY)
 
-# Supported languages (constant so it's easily maintainable)
+# Setup DB (SQLite for history persistence)
+engine = db.create_engine("sqlite:///translations.db")
+connection = engine.connect()
+metadata = db.MetaData()
+
+translations = db.Table(
+    "translations", metadata,
+    db.Column("id", db.Integer, primary_key=True),
+    db.Column("src_lang", db.String(50)),
+    db.Column("tgt_lang", db.String(50)),
+    db.Column("input_code", db.Text),
+    db.Column("output_code", db.Text),
+    db.Column("latency", db.Float),
+)
+
+metadata.create_all(engine)
+
+
+# -------------------------
+#  Core AI Function
+# -------------------------
+
+def ai_translate_stream(src_lang: str, tgt_lang: str, user_input: str):
+    """Stream translation token-by-token."""
+    start_time = time.time()
+    output = ""
+
+    try:
+        stream = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{
+                "role": "user",
+                "content": f"Convert this {src_lang} code into {tgt_lang}: \n{user_input}\n\nOnly return valid code."
+            }],
+            stream=True,
+        )
+
+        translation_box = st.empty()
+        for event in stream:
+            if event.type == "message.delta" and event.delta.content:
+                output += event.delta.content
+                translation_box.code(output, language=tgt_lang.lower() if tgt_lang != "Assembly Language" else "")
+
+        latency = round(time.time() - start_time, 2)
+
+        # Save to DB
+        ins = translations.insert().values(
+            src_lang=src_lang,
+            tgt_lang=tgt_lang,
+            input_code=user_input,
+            output_code=output,
+            latency=latency,
+        )
+        connection.execute(ins)
+
+        return output, latency
+
+    except Exception as e:
+        return f"⚠️ Error: {str(e)}", 0.0
+
+
+# -------------------------
+#  UI Layer
+# -------------------------
+
 LANGUAGES = [
     "Python", "Java", "C", "C++", "JavaScript", "Ruby", "PHP", "Go", "Swift",
     "Kotlin", "Rust", "TypeScript", "HTML", "CSS", "SQL", "R", "MATLAB", "Lua",
@@ -24,75 +88,39 @@ LANGUAGES = [
     "Julia", "F#", "Groovy", "Assembly Language"
 ]
 
-# -------------------------
-#  Core AI Function
-# -------------------------
-
-@lru_cache(maxsize=100)  # cache repeated queries
-def ai_translate(src_lang: str, tgt_lang: str, user_input: str) -> str:
-    """Translate code from src_lang to tgt_lang using Groq API."""
-    try:
-        chat_completion = client.chat.completions.create(
-            messages=[{
-                "role": "user",
-                "content": (
-                    f"Convert the following code from {src_lang} to {tgt_lang}:\n\n{user_input}\n\n"
-                    "Only provide the translated code. No explanations unless required by syntax."
-                ),
-            }],
-            model="llama-3.3-70b-versatile",
-        )
-        return chat_completion.choices[0].message.content.strip()
-    except Exception as e:
-        return f"⚠️ Error: {str(e)}"
-
-# -------------------------
-#  UI Layer
-# -------------------------
-
 def chatbot_ui():
-    """Streamlit UI for the translator app."""
-    st.title("🌍 Code Translator")
-    st.caption("Powered by Groq LLaMA 3.3 – Translate between 30+ languages seamlessly")
+    st.title("🌍 Code Translator (Streaming + Persistence)")
+    st.caption("Now with token-level streaming, history, and latency tracking")
 
-    # Layout
     col1, col2 = st.columns(2)
 
     with col1:
         src_lang = st.selectbox("Convert from:", LANGUAGES, index=0)
-
     with col2:
         tgt_lang = st.selectbox("Convert to:", LANGUAGES, index=1)
 
     user_input = st.text_area(
-        "Enter your code here:",
-        placeholder=f"Paste {src_lang} code to translate into {tgt_lang}..."
+        "Paste your code here:",
+        placeholder=f"Enter {src_lang} code..."
     )
 
-    if st.button("🚀 Translate", use_container_width=True):
+    if st.button("🚀 Translate"):
         if not user_input.strip():
-            st.warning("⚠️ Please enter some code to translate.")
+            st.warning("⚠️ Please enter code before translating.")
         else:
-            with st.spinner("Translating..."):
-                translation = ai_translate(src_lang, tgt_lang, user_input)
-                st.subheader("✅ Translated Code:")
-                st.code(translation, language=tgt_lang.lower() if tgt_lang != "Assembly Language" else "")
+            st.write("Streaming translation...")
+            translated, latency = ai_translate_stream(src_lang, tgt_lang, user_input)
 
-    # Maintain chat history (optional FAANG touch)
-    if "history" not in st.session_state:
-        st.session_state.history = []
+            st.success(f"✅ Translation completed in {latency} seconds")
 
-    if user_input.strip():
-        st.session_state.history.append((src_lang, tgt_lang, user_input))
+    # History viewer
+    st.subheader("📜 Translation History")
+    result = connection.execute(db.select(translations).order_by(translations.c.id.desc()).limit(5))
+    for row in result:
+        with st.expander(f"{row.src_lang} ➝ {row.tgt_lang} (took {row.latency}s)"):
+            st.code(row.input_code, language=row.src_lang.lower())
+            st.code(row.output_code, language=row.tgt_lang.lower())
 
-    if st.session_state.history:
-        with st.expander("📜 Translation History"):
-            for i, (s, t, code) in enumerate(reversed(st.session_state.history), 1):
-                st.markdown(f"**{i}. {s} ➝ {t}**")
-                st.code(code, language=s.lower())
 
-# -------------------------
-#  Run App
-# -------------------------
 if __name__ == "__main__":
     chatbot_ui()
