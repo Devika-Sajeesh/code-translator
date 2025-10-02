@@ -1,4 +1,3 @@
-```markdown
 # Code Translator Web App
 
 A web-based code translator built with **Streamlit** and **Groq LLaMA**, which allows users to convert code from one programming language to another (over 30 languages supported).
@@ -19,6 +18,7 @@ Live Demo: [Your App URL](https://devika-sajeesh-code-translator-duo-pilvnz.stre
 ---
 
 ## 🧩 Project Structure
+
 ```
 
 .
@@ -27,7 +27,7 @@ Live Demo: [Your App URL](https://devika-sajeesh-code-translator-duo-pilvnz.stre
 ├── README.md # This documentation
 └── ...
 
-````
+```
 
 ---
 
@@ -38,6 +38,8 @@ Live Demo: [Your App URL](https://devika-sajeesh-code-translator-duo-pilvnz.stre
    ```bash
    git clone <your-repo-url>
    cd <your-repo-folder>
+   ```
+
 ````
 
 2. **Create a virtual environment (optional but recommended)**
@@ -147,3 +149,4 @@ This project is licensed under the **MIT License** — see `LICENSE` for details
 ```
 
 ```
+````
