@@ -1,57 +1,98 @@
 import streamlit as st
 import os
 import groq
+from functools import lru_cache
 
-# AI setup - Use environment variables or Streamlit secrets for API keys
-client = groq.Client(api_key=st.secrets["GROQ_API_KEY"])
+# -------------------------
+#  Setup & Configuration
+# -------------------------
 
-# Chatbot setup
-def ai_chatbot(a, b, user_input):
-    chat_completion = client.chat.completions.create(
-        messages=[
-            {
+# Safe API key retrieval (support both secrets and environment variables)
+GROQ_API_KEY = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
+
+if not GROQ_API_KEY:
+    st.error("⚠️ API key not found. Please set it in Streamlit secrets or environment variables.")
+    st.stop()
+
+client = groq.Client(api_key=GROQ_API_KEY)
+
+# Supported languages (constant so it's easily maintainable)
+LANGUAGES = [
+    "Python", "Java", "C", "C++", "JavaScript", "Ruby", "PHP", "Go", "Swift",
+    "Kotlin", "Rust", "TypeScript", "HTML", "CSS", "SQL", "R", "MATLAB", "Lua",
+    "Shell", "Perl", "Scala", "Dart", "Haskell", "Objective-C", "VHDL", "Verilog",
+    "Julia", "F#", "Groovy", "Assembly Language"
+]
+
+# -------------------------
+#  Core AI Function
+# -------------------------
+
+@lru_cache(maxsize=100)  # cache repeated queries
+def ai_translate(src_lang: str, tgt_lang: str, user_input: str) -> str:
+    """Translate code from src_lang to tgt_lang using Groq API."""
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[{
                 "role": "user",
-                "content": f"Convert the entered command inputted in {a} language to {b} language. The input is: {user_input} ",
-            }
-        ],
-        model="llama-3.3-70b-versatile",  
+                "content": (
+                    f"Convert the following code from {src_lang} to {tgt_lang}:\n\n{user_input}\n\n"
+                    "Only provide the translated code. No explanations unless required by syntax."
+                ),
+            }],
+            model="llama-3.3-70b-versatile",
+        )
+        return chat_completion.choices[0].message.content.strip()
+    except Exception as e:
+        return f"⚠️ Error: {str(e)}"
+
+# -------------------------
+#  UI Layer
+# -------------------------
+
+def chatbot_ui():
+    """Streamlit UI for the translator app."""
+    st.title("🌍 Code Translator (FAANG-grade)")
+    st.caption("Powered by Groq LLaMA 3.3 – Translate between 30+ languages seamlessly")
+
+    # Layout
+    col1, col2 = st.columns(2)
+
+    with col1:
+        src_lang = st.selectbox("Convert from:", LANGUAGES, index=0)
+
+    with col2:
+        tgt_lang = st.selectbox("Convert to:", LANGUAGES, index=1)
+
+    user_input = st.text_area(
+        "Enter your code here:",
+        placeholder=f"Paste {src_lang} code to translate into {tgt_lang}..."
     )
-    return chat_completion.choices[0].message.content
 
-def chatbot_ui(a, b):
-    """Streamlit UI for the chatbot"""
-    st.title("Code Translator")
-    
-    user_input = st.text_input("Please enter the command that should be converted. I will guide you:")
-    
-    if user_input:  
-        if user_input.lower() == "exit":
-            st.write("Goodbye! Feel free to come back anytime.")
+    if st.button("🚀 Translate", use_container_width=True):
+        if not user_input.strip():
+            st.warning("⚠️ Please enter some code to translate.")
         else:
-            # Get the chatbot's response
-            response = ai_chatbot(a, b, user_input)
-            st.write(f"**BumbleBee🤖:** {response}")
+            with st.spinner("Translating..."):
+                translation = ai_translate(src_lang, tgt_lang, user_input)
+                st.subheader("✅ Translated Code:")
+                st.code(translation, language=tgt_lang.lower() if tgt_lang != "Assembly Language" else "")
 
-# Create columns for alignment
-col1, col2 = st.columns(2)
+    # Maintain chat history (optional FAANG touch)
+    if "history" not in st.session_state:
+        st.session_state.history = []
 
-# Language selection in the first column
-with col1:
-    tochange_choice = st.selectbox("Choose the language to convert from:", [
-        "Python", "Java", "C", "C++", "JavaScript", "Ruby", "PHP", "Go", "Swift", 
-        "Kotlin", "Rust", "TypeScript", "HTML", "CSS", "SQL", "R", "MATLAB", "Lua", 
-        "Shell", "Perl", "Scala", "Dart", "Haskell", "Objective-C", "VHDL", "Verilog", 
-        "Julia", "F#", "Groovy", "Assembly Language"
-    ])
+    if user_input.strip():
+        st.session_state.history.append((src_lang, tgt_lang, user_input))
 
-# Language selection in the second column
-with col2:
-    ischange_choice = st.selectbox("Choose the language to convert to:", [
-        "Python", "Java", "C", "C++", "JavaScript", "Ruby", "PHP", "Go", "Swift", 
-        "Kotlin", "Rust", "TypeScript", "HTML", "CSS", "SQL", "R", "MATLAB", "Lua", 
-        "Shell", "Perl", "Scala", "Dart", "Haskell", "Objective-C", "VHDL", "Verilog", 
-        "Julia", "F#", "Groovy", "Assembly Language"
-    ])
+    if st.session_state.history:
+        with st.expander("📜 Translation History"):
+            for i, (s, t, code) in enumerate(reversed(st.session_state.history), 1):
+                st.markdown(f"**{i}. {s} ➝ {t}**")
+                st.code(code, language=s.lower())
 
-# Display the chatbot UI
-chatbot_ui(tochange_choice, ischange_choice)
+# -------------------------
+#  Run App
+# -------------------------
+if __name__ == "__main__":
+    chatbot_ui()
