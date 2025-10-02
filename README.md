@@ -1,85 +1,149 @@
-# 🧠 Code Translator with Streamlit & Groq API
+```markdown
+# Code Translator Web App
 
-A lightweight, AI-powered web app that translates code or shell commands between different programming languages using the LLaMA-3 70B model via the Groq API.
+A web-based code translator built with **Streamlit** and **Groq LLaMA**, which allows users to convert code from one programming language to another (over 30 languages supported).
+
+Live Demo: [Your App URL](https://devika-sajeesh-code-translator-duo-pilvnz.streamlit.app/)
+
+---
 
 ## 🚀 Features
 
-* 🔁 **Code Translation**: Convert code snippets from one programming language to another in one line.
-* 🌍 **Multi-language Support**: Supports 30+ programming languages, including Python, Java, C++, JavaScript, HTML, SQL, and more.
-* 💬 **User-Friendly Interface**: Built with Streamlit for a responsive and intuitive experience.
-* ⚡ **Powered by LLaMA-3**: Uses the Groq LLaMA-3.3-70B-Versatile model for accurate translations.
-* 🛡️ **Exit Keyword**: Type `exit` to close the session gracefully.
+- Translate code snippets between many languages (e.g. Python, JavaScript, C++, Java, Rust, etc.)
+- Clean and interactive UI using Streamlit
+- Loading spinner & error handling
+- History / past translations view (optional)
+- API key management via **Streamlit secrets** or environment variables
+- Caching to avoid redundant API calls
 
 ---
 
-## 📦 Technologies Used
+## 🧩 Project Structure
+```
 
-* [Streamlit](https://streamlit.io/) – UI framework
-* [Groq Python SDK](https://groq.com/) – API client for LLaMA-3 models
-* [LLaMA-3.3 70B Versatile](https://groq.com/) – The AI model behind the translation
-
----
-
-## 🖥️ Usage
-
-1. **Install Dependencies**:
-
-   ```bash
-   pip install streamlit groq
-   ```
-
-2. **Set Up Groq API Key**:
-   Replace this line:
-
-   ```python
-   groq_api_key = "your_groq_api_key_here"
-   ```
-
-  for better security, store your key in environment variables or use `st.secrets`.
-
-3. **Run the App**:
-
-   ```bash
-   streamlit run your_script_name.py
-   ```
-
-4. **Interact with the App**:
-
-   * Select the **language to convert from** and **to**.
-   * Input your code or command in the text field.
-   * Get a one-line translation powered by LLaMA-3.
-
----
-
-## 🌐 Supported Languages
-
-Includes (but not limited to):
-
-* Python, Java, C, C++, JavaScript, HTML, CSS, SQL
-* Rust, Kotlin, Swift, Go, Ruby, PHP, MATLAB
-* Shell, Perl, Lua, Dart, Haskell, VHDL, Verilog, and more.
-
----
-
-## 📂 Project Structure
-
-```text
 .
-├── duo.py         # Main Streamlit app
-├── README.md                  # Project documentation
-├── requirements.txt           # (Optional) Dependency list
+├── app.py # Main Streamlit app
+├── requirements.txt # Python dependencies
+├── README.md # This documentation
+└── ...
+
+````
+
+---
+
+## 🛠️ Setup & Installation
+
+1. **Clone the repository**
+
+   ```bash
+   git clone <your-repo-url>
+   cd <your-repo-folder>
+````
+
+2. **Create a virtual environment (optional but recommended)**
+
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate       # macOS/Linux
+   venv\Scripts\activate.bat      # Windows
+   ```
+
+3. **Install dependencies**
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Configure API key**
+
+   You need a Groq API key to use the translation backend. You can set it either:
+
+   - In `~/.streamlit/secrets.toml`:
+
+     ```toml
+     GROQ_API_KEY = "your_groq_api_key_here"
+     ```
+
+   - Or as an environment variable:
+
+     ```bash
+     export GROQ_API_KEY="your_groq_api_key_here"
+     ```
+
+5. **Run the Streamlit app**
+
+   ```bash
+   streamlit run app.py
+   ```
+
+6. **Open your browser**
+
+   By default, it should open at `http://localhost:8501`.
+
+---
+
+## 📐 Usage
+
+1. Choose the **source language** (language you have code in).
+2. Choose the **target language** (language you want to translate to).
+3. Paste your code snippet (or command) in the input box.
+4. Click **Translate**.
+5. The translated code appears below.
+6. You can optionally view your translation history in an expandable panel.
+
+To exit or reset, simply clear the input or refresh the page.
+
+---
+
+## 🪄 Architecture Notes & Best Practices
+
+- The **translation logic** is isolated in a function (`ai_translate`) with caching, so you can evolve it (e.g. add streaming or alternative models) independently of the UI.
+- Error handling ensures graceful failure if the API is unreachable or the key is invalid.
+- The UI is modular and uses **Streamlit columns**, spinners, and session-state for user experience polish.
+- API keys are never hard-coded — it reads from secrets or environment variables to follow security best practices.
+- You can extend this by adding:
+
+  - Token-level streaming responses
+  - Rate limiting
+  - User authentication
+  - Saving user preferences or history to a database
+  - Logging & monitoring (e.g. via Sentry)
+
+---
+
+## 📦 Dependencies
+
+Key libraries used:
+
+- `streamlit`
+- `groq`
+- `functools` (for caching)
+- Standard Python libs (`os`, etc.)
+
+You can freeze them using:
+
+```bash
+pip freeze > requirements.txt
 ```
 
 ---
 
-## ⚠️ Disclaimer
+## ✅ Contributing & License
 
-This app is intended for **basic translations and educational use**. Always verify AI-generated code for correctness, security, and performance.
+Feel free to open issues, suggest features, or pull requests!
+
+This project is licensed under the **MIT License** — see `LICENSE` for details.
 
 ---
 
-## 📫 Contact
+## 🙋 Acknowledgements
 
-For questions or improvements, feel free to reach out or contribute.
+- Built with **Streamlit**
+- Powered by **Groq LLaMA 3.3** for generative code translation
+- Inspired by many AI-based code conversion tools
 
-Happy coding! 🐝💻
+``
+
+```
+
+```
