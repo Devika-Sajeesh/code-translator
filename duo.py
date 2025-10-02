@@ -52,7 +52,7 @@ def ai_translate(src_lang: str, tgt_lang: str, user_input: str) -> str:
 
 def chatbot_ui():
     """Streamlit UI for the translator app."""
-    st.title("🌍 Code Translator (FAANG-grade)")
+    st.title("🌍 Code Translator")
     st.caption("Powered by Groq LLaMA 3.3 – Translate between 30+ languages seamlessly")
 
     # Layout
